@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Store selection</title>
+    <meta charset="utf-8">
+    <!--<style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>-->
+    <link href="node_modules/remark-bekk/dist/bekk.css" type="text/css" rel="stylesheet">
+  </head>
+  <body class="bekk-black">
+    <textarea id="source">
+class: front-page
+
+# Hvordan hente ting fra tilstand i Redux-apps
+
+Dag Stuan
+
+---
+
+# Agenda
+
+Hvordan jeg henta ting fra tilstand før, og hvordan jeg gjør det nå, og hvordan man _bør_ gjøre det.
+
+---
+
+# Redux
+
+* Tilstandshåndtering i moderne webapps
+* En tilstand som er immutabel.
+* Kun en måte å endre tilstand på, ved å skrive reducere som håndterer "actions".
+* Reducerene bestemmer hvordan tilstanden ser ut.
+* Hele appen rendres basert på denne tilstanden.
+
+## Uthenting av tilstand
+
+* `react-redux`: `mapStateToProps(state, [ownProps]): stateProps` sammen med `connect()`
+* `@angular-redux/store`: `@select()`-dekorator sammen med dependency injection
+
+---
+
+class: cols two
+
+# I begynnelsen
+
+Henta bare tilstand direkte i viewlaget, uten å tenke så mye mer på det.
+
+.col[
+```js
+const state = {
+  counter: 3,
+  todos: [
+    'foo',
+    'bar'
+  ],
+};
+```
+]
+
+.col[
+```js
+// ...component
+
+function mapStateToProps (state) = {
+  return {
+    counter: state.counter,
+    todos: state.todos
+  };
+}
+
+connect(mapStateToProps)(MyComponent);
+```
+]
+
+---
+
+# Funker det?
+
+```js
+// ...component
+
+function mapStateToProps (state) = {
+  return {
+    counter: state.counter,
+    todos: state.todos
+  };
+}
+
+connect(mapStateToProps)(MyComponent);
+```
+
+---
+
+# Funker det?
+
+```js
+// ...component
+
+function mapStateToProps (state) = {
+  return {
+    counter: state.counter,
+    todos: state.todos
+  };
+}
+
+connect(mapStateToProps)(MyComponent);
+```
+
+* Vanskelig å endre strukturen på tilstanden
+* Vanskelig å vite hvilke biter av viewlaget som avhenger av hvilke biter av tilstand.
+* Viewlaget er avhengig av hvordan tilstanden er strukturert.
+
+---
+
+# Selector
+
+Funksjon som tar inn hele tilstanden, og returnerer en bit av denne.
+
+```js
+const state = {
+  counter: 3,
+  todos: [
+    'foo',
+    'bar'
+  ],
+};
+```
+
+```js
+// selectors.js
+
+function getCounter(state) {
+  return state.counter; // 3
+}
+
+function getTodos(state) {
+  return state.todos; // [ 'foo', 'bar' ]
+}
+```
+
+---
+
+class: cols two
+
+# Nytt forsøk
+
+.col[
+```js
+import * as selectors from './selectors';
+
+function mapStateToProps (state) = {
+  return {
+    counter: selectors.getCounter(state),
+    todos: selectors.getTodos(state),
+  };
+}
+
+connect(mapStateToProps)(MyComponent);
+```
+]
+
+---
+
+class: cols two
+
+# Nytt forsøk
+
+.col[
+```js
+import * as selectors from './selectors';
+
+function mapStateToProps (state) = {
+  return {
+    counter: selectors.getCounter(state),
+    todos: selectors.getTodos(state),
+  };
+}
+
+connect(mapStateToProps)(MyComponent);
+```
+]
+
+.col[
+
+* Viewlaget er ikke lenger avhengig av strukturen på tilstanden direkte.
+* Det er lett å finne ut hvilke biter av viewlaget som er avhengig av hvilke biter av tilstanden
+* Selectorene kan også grupperes sammen med reducere, slik at all sannhet om tilstand lagres et sted.
+
+```js
+view
+|- component.js
+data
+|- actions.js
+|- reducer.js
+|- selectors.js
+```
+]
+
+---
+
+class: middle center
+
+# Men...
+
+##Hva om strukturen på state ikke stemmer overens med behovene til viewlaget?
+
+---
+
+
+class: cols two
+
+.col[
+```js
+const state = {
+  counter: 3,
+  people: [{
+    id: '1',
+    name: 'Eirik',
+    age: 29,
+  },
+  {
+    id: '2',
+    name: 'Dag',
+    age: 30,
+  }],
+};
+```
+
+```js
+// selectors.js
+function getCounter(state) {
+  return state.counter;
+}
+
+function getPeople(state) {
+  return state.people;
+}
+```
+]
+
+.col[
+```js
+function MyComponent({
+  people,
+  counter,
+}) {
+  const names = people
+    .map(person => person.name);
+
+  return (
+    <div>
+      <p>Counter: { counter }</p>
+      <NameList names={names} />
+    </div>
+  );
+}
+
+const mapStateToProps = (state) => ({
+  people: selectors.getPeople(state),
+  counter: selectors.getCounter(state),
+});
+
+export default connect(
+  mapStateToProps
+)(MyComponent);
+```
+]
+
+---
+
+class: cols two
+
+.col[
+```js
+function MyComponent({
+  people,
+  counter,
+}) {
+  const names = people
+    .map(person => person.name);
+
+  return (
+    <div>
+      <p>Counter: { counter }</p>
+      <NameList names={names} />
+    </div>
+  );
+}
+
+const mapStateToProps = (state) => ({
+  people: selectors.getPeople(state),
+  counter: selectors.getCounter(state),
+});
+
+export default connect(
+  mapStateToProps
+)(MyComponent);
+```
+]
+
+.col[
+* Her må faktisk `NameList` re-rendres hver gang `MyComponent` rendres.
+* Mappingen fra `people` til `names` gjør at `NameList` alltid vil få en ny referanse til navnelisten
+* Det spiller ingen rolle om vi gjør det i `mapStateToProps` eller i `render()` i komponenten, `NameList` vil uansett få en ny referanse
+* Trenger en måte å unngå å gjøre arbeidet på nytt hver gang
+]
+
+---
+
+# Reselect
+
+* Gjør det mulig å endre på hva som returneres til viewlaget uten å måtte endre på hva som ligger i tilstanden
+* Tar vare på resultatet av en kalkulering, og gjør ikke kalkuleringen på nytt med mindre argumentene endres
+* [https://github.com/reactjs/reselect](https://github.com/reactjs/reselect)
+
+---
+
+# Hvordan?
+
+* En selector i reselect tar inn andre selectorer som argumenter, og gjør beregninger basert på resultatet av disse.
+
+Eksempel:
+
+```js
+// selectors.js
+
+import { createSelector } from 'reselect';
+
+function getPeople(state) {
+  return state.people;
+}
+
+export const getNames = createSelector(
+  [ getPeople ],
+  people => people.map(person => person.name);
+)
+
+```
+
+---
+
+class: cols two
+
+.col[
+```js
+const state = {
+  counter: 3,
+  people: [
+    // ...
+  ],
+};
+```
+
+```js
+// selectors.js
+
+import { createSelector } from 'reselect';
+
+function getPeople(state) {
+  return state.people;
+}
+
+export const getNames = createSelector(
+  [ getPeople ],
+  people => people.map(person => person.name);
+)
+
+```
+]
+
+.col[
+```js
+function MyComponent({
+  names,
+  counter,
+}) {
+  return (
+    <div>
+      <p>Counter: { counter }</p>
+      <NameList names={names} />
+    </div>
+  );
+}
+
+const mapStateToProps = (state) => ({
+  names: selectors.getNames(state),
+  counter: selectors.getCounter(state),
+});
+
+export default connect(
+  mapStateToProps
+)(MyComponent);
+```
+]
+
+---
+
+# Andre bruksområder
+
+Avhengigheter til flere biter av state. For eksempel filtre, sortering etc.
+
+```js
+import { createSelector } from 'reselect'
+
+const getVisibilityFilter = (state) => state.visibilityFilter
+const getTodos = (state) => state.todos
+
+export const getVisibleTodos = createSelector(
+  [ getVisibilityFilter, getTodos ],
+  (visibilityFilter, todos) => {
+    switch (visibilityFilter) {
+      case 'SHOW_ALL':
+        return todos
+      case 'SHOW_COMPLETED':
+        return todos.filter(t => t.completed)
+      case 'SHOW_ACTIVE':
+        return todos.filter(t => !t.completed)
+    }
+  }
+)
+```
+
+---
+
+# Andre bruksområder
+
+Komponering av flere selectorer
+
+```js
+const getKeyword = (state) => state.keyword
+
+const getVisibleTodosFilteredByKeyword = createSelector(
+  [ getVisibleTodos, getKeyword ],
+  (visibleTodos, keyword) => visibleTodos.filter(
+    todo => todo.text.includes(keyword)
+  )
+)
+```
+
+---
+
+# Oppsummering
+
+* Lag selector-funksjoner som grupperes sammen med reducere slik at view ikke er avhengig hvordan tilstanden ser ut.
+
+```js
+view
+|- component.js
+data
+|- actions.js
+|- reducer.js
+|- selectors.js
+```
+
+* Unngå mapping av state i `render()` eller `mapStateToProps()`.
+* Bruk `reselect` eller lignende for unngå unødvendig arbeid dersom data ikke endres.
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai'
+      });
+    </script>
+  </body>
+</html>
