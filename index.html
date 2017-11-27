@@ -31,19 +31,25 @@ Dag Stuan
 
 Hvordan jeg henta ting fra tilstand før, og hvordan jeg gjør det nå, og hvordan man _bør_ gjøre det.
 
+???
+
+Snakker først og fremst om bruk av redux sammen med react, men konseptene gjelder for andre viewbiblioteker også.
+
+Bare å stille spørsmål hvis man ikke er så kjent med Redux fra før.
+
 ---
 
 # Redux
 
 * Tilstandshåndtering i moderne webapps
-* En tilstand som er immutabel.
+* Én tilstand, som er immutabel.
 * Kun en måte å endre tilstand på, ved å skrive reducere som håndterer "actions".
-* Reducerene bestemmer hvordan tilstanden ser ut.
+* Reducerene bestemmer strukturen på tilstanden.
 * Hele appen rendres basert på denne tilstanden.
 
-## Uthenting av tilstand
+## Uthenting av tilstand fra redux
 
-* `react-redux`: `mapStateToProps(state, [ownProps]): stateProps` sammen med `connect()`
+* `react-redux`: `mapStateToProps()` sammen med `connect()`
 * `@angular-redux/store`: `@select()`-dekorator sammen med dependency injection
 
 ---
@@ -56,68 +62,59 @@ Henta bare tilstand direkte i viewlaget, uten å tenke så mye mer på det.
 
 .col[
 ```js
-const state = {
-  counter: 3,
-  todos: [
-    'foo',
-    'bar'
-  ],
-};
+  const state = {
+    counter: 3,
+    todos: [
+      'foo',
+      'bar',
+    ],
+  };
 ```
 ]
 
 .col[
 ```js
-// ...component
+  // ...component
 
-function mapStateToProps (state) = {
-  return {
-    counter: state.counter,
-    todos: state.todos
-  };
-}
+  function mapStateToProps (state) = {
+    return {
+      counter: state.counter,
+      todos: state.todos,
+    };
+  }
 
-connect(mapStateToProps)(MyComponent);
+  connect(mapStateToProps)(RootComponent);
 ```
 ]
 
----
+???
 
-# Funker det?
-
-```js
-// ...component
-
-function mapStateToProps (state) = {
-  return {
-    counter: state.counter,
-    todos: state.todos
-  };
-}
-
-connect(mapStateToProps)(MyComponent);
-```
+Naiv fremgangsmåte, enkelt å forstå.
 
 ---
 
-# Funker det?
+# Funker det? Tja...
 
 ```js
-// ...component
+  // ...component
 
-function mapStateToProps (state) = {
-  return {
-    counter: state.counter,
-    todos: state.todos
-  };
-}
+  function mapStateToProps (state) = {
+    return {
+      counter: state.counter,
+      todos: state.todos,
+    };
+  }
 
-connect(mapStateToProps)(MyComponent);
+  connect(mapStateToProps)(RootComponent);
 ```
 
 * Vanskelig å endre strukturen på tilstanden
 * Vanskelig å vite hvilke biter av viewlaget som avhenger av hvilke biter av tilstand.
 * Viewlaget er avhengig av hvordan tilstanden er strukturert.
+
+???
+
+Fikk problemer når mange komponenter ble avhengig av samme bit av tilstand, og jeg måtte refaktorere koden
 
 ---
 
@@ -126,26 +123,30 @@ connect(mapStateToProps)(MyComponent);
 Funksjon som tar inn hele tilstanden, og returnerer en bit av denne.
 
 ```js
-const state = {
-  counter: 3,
-  todos: [
-    'foo',
-    'bar'
-  ],
-};
+  const state = {
+    counter: 3,
+    todos: [
+      'foo',
+      'bar',
+    ],
+  };
 ```
 
 ```js
-// selectors.js
+  // selectors.js
 
-function getCounter(state) {
-  return state.counter; // 3
-}
+  export function getCounter(state) {
+    return state.counter; // 3
+  }
 
-function getTodos(state) {
-  return state.todos; // [ 'foo', 'bar' ]
-}
+  export function getTodos(state) {
+    return state.todos; // [ 'foo', 'bar' ]
+  }
 ```
+
+???
+
+Begynte å lage egne filer med selectors.
 
 ---
 
@@ -155,16 +156,16 @@ class: cols two
 
 .col[
 ```js
-import * as selectors from './selectors';
+  import * as selectors from './selectors';
 
-function mapStateToProps (state) = {
-  return {
-    counter: selectors.getCounter(state),
-    todos: selectors.getTodos(state),
-  };
-}
+  function mapStateToProps (state) = {
+    return {
+      counter: selectors.getCounter(state),
+      todos: selectors.getTodos(state),
+    };
+  }
 
-connect(mapStateToProps)(MyComponent);
+  connect(mapStateToProps)(RootComponent);
 ```
 ]
 
@@ -176,16 +177,16 @@ class: cols two
 
 .col[
 ```js
-import * as selectors from './selectors';
+  import * as selectors from './selectors';
 
-function mapStateToProps (state) = {
-  return {
-    counter: selectors.getCounter(state),
-    todos: selectors.getTodos(state),
-  };
-}
+  function mapStateToProps (state) = {
+    return {
+      counter: selectors.getCounter(state),
+      todos: selectors.getTodos(state),
+    };
+  }
 
-connect(mapStateToProps)(MyComponent);
+  connect(mapStateToProps)(RootComponent);
 ```
 ]
 
@@ -196,14 +197,21 @@ connect(mapStateToProps)(MyComponent);
 * Selectorene kan også grupperes sammen med reducere, slik at all sannhet om tilstand lagres et sted.
 
 ```js
-view
-|- component.js
-data
-|- actions.js
-|- reducer.js
-|- selectors.js
+  view
+  |- component.js
+  data
+  |- actions.js
+  |- reducer.js
+  |- selectors.js
 ```
 ]
+
+???
+
+Eksempel på filstruktur
+
+Dette fungerer veldig bra. Og gjør vedlikehold av redux mye lettere, siden Viewlaget
+er uavhengig av hvordan tilstanden ser ut.
 
 ---
 
@@ -211,7 +219,7 @@ class: middle center
 
 # Men...
 
-##Hva om strukturen på state ikke stemmer overens med behovene til viewlaget?
+##Hva om strukturen til tilstanden ikke stemmer overens med behovene til viewlaget?
 
 ---
 
@@ -220,60 +228,67 @@ class: cols two
 
 .col[
 ```js
-const state = {
-  counter: 3,
-  people: [{
-    id: '1',
-    name: 'Eirik',
-    age: 29,
-  },
-  {
-    id: '2',
-    name: 'Dag',
-    age: 30,
-  }],
-};
+  const state = {
+    counter: 3,
+    people: [
+      {
+        name: 'Eirik',
+        age: 29,
+      },
+      {
+        name: 'Dag',
+        age: 30,
+      },
+    ],
+  };
 ```
 
 ```js
-// selectors.js
-function getCounter(state) {
-  return state.counter;
-}
+  // selectors.js
+  export function getCounter(state) {
+    return state.counter;
+  }
 
-function getPeople(state) {
-  return state.people;
-}
+  export function getPeople(state) {
+    return state.people;
+  }
 ```
 ]
 
 .col[
 ```js
-function MyComponent({
-  people,
-  counter,
-}) {
-  const names = people
-    .map(person => person.name);
+  function RootComponent({
+    people,
+    counter,
+  }) {
+    const names = people
+      .map(person => person.name);
 
-  return (
-    <div>
-      <p>Counter: { counter }</p>
-      <NameList names={names} />
-    </div>
-  );
-}
+    return (
+      <div>
+        <p>Counter: { counter }</p>
+        <NameList names={names} />
+      </div>
+    );
+  }
 
-const mapStateToProps = (state) => ({
-  people: selectors.getPeople(state),
-  counter: selectors.getCounter(state),
-});
+  const mapStateToProps = (state) => ({
+    people: selectors.getPeople(state),
+    counter: selectors.getCounter(state),
+  });
 
-export default connect(
-  mapStateToProps
-)(MyComponent);
+  export default connect(
+    mapStateToProps
+  )(RootComponent);
 ```
 ]
+
+???
+
+Gitt at NameList er en PureComponent, altså kun sjekker referanser til props:
+Noen som kan gjette hva som skjer med navnelista dersom counteren endrer seg?
+
+En forutsetning er at NameList er en PureComponent slik at den kun sjekker referansene til props
 
 ---
 
@@ -281,46 +296,92 @@ class: cols two
 
 .col[
 ```js
-function MyComponent({
-  people,
-  counter,
-}) {
-  const names = people
-    .map(person => person.name);
+  function RootComponent({
+    people,
+    counter,
+  }) {
+    const names = people
+      .map(person => person.name);
 
-  return (
-    <div>
-      <p>Counter: { counter }</p>
-      <NameList names={names} />
-    </div>
-  );
-}
+    return (
+      <div>
+        <p>Counter: { counter }</p>
+        <NameList names={names} />
+      </div>
+    );
+  }
 
-const mapStateToProps = (state) => ({
-  people: selectors.getPeople(state),
-  counter: selectors.getCounter(state),
-});
+  const mapStateToProps = (state) => ({
+    people: selectors.getPeople(state),
+    counter: selectors.getCounter(state),
+  });
 
-export default connect(
-  mapStateToProps
-)(MyComponent);
+  export default connect(
+    mapStateToProps
+  )(RootComponent);
 ```
 ]
 
 .col[
-* Her må faktisk `NameList` re-rendres hver gang `MyComponent` rendres.
+* I dette tilfellet må `NameList` re-rendres hver gang `RootComponent` rendres.
 * Mappingen fra `people` til `names` gjør at `NameList` alltid vil få en ny referanse til navnelisten
-* Det spiller ingen rolle om vi gjør det i `mapStateToProps` eller i `render()` i komponenten, `NameList` vil uansett få en ny referanse
-* Trenger en måte å unngå å gjøre arbeidet på nytt hver gang
 ]
+
+???
+
+Trenger en måte å unngå å gjøre arbeidet på nytt hver gang
+
+---
+
+class: cols two
+
+.col[
+```js
+  function RootComponent({
+    names,
+    counter,
+  }) {
+    return (
+      <div>
+        <p>Counter: { counter }</p>
+        <NameList names={names} />
+      </div>
+    );
+  }
+
+  const mapStateToProps = (state) => ({
+    names: selectors
+      .getPeople(state)
+      .map(person => person.name),
+    counter: selectors.getCounter(state),
+  });
+
+  export default connect(
+    mapStateToProps
+  )(RootComponent);
+```
+]
+
+.col[
+* I dette tilfellet må `NameList` re-rendres hver gang `RootComponent` rendres.
+* Mappingen fra `people` til `names` gjør at `NameList` alltid vil få en ny referanse til navnelisten
+* Det spiller ingen rolle om vi gjør det i `mapStateToProps()` eller i komponenten, `NameList` vil uansett få en ny listereferanse
+]
+
+???
+
+Trenger en måte å unngå å gjøre arbeidet på nytt hver gang
 
 ---
 
 # Reselect
 
-* Gjør det mulig å endre på hva som returneres til viewlaget uten å måtte endre på hva som ligger i tilstanden
-* Tar vare på resultatet av en kalkulering, og gjør ikke kalkuleringen på nytt med mindre argumentene endres
-* [https://github.com/reactjs/reselect](https://github.com/reactjs/reselect)
+* Gjør det mulig å la viewlaget være uavhengig av strukturen til tilstanden, uten å måtte re-rendre hele tiden
+
+## Selectorer i reselect
+* Kan utlede annen data basert på hva som er i tilstanden, slik at man ikke trenger å ta hensyn til viewlaget når man bestemmer hvordan tilstanden skal se ut.
+* Tar vare på resultatet av en kalkulering, og gjør ikke jobben på nytt med mindre argumentene endres
+* Man kan kombinere flere selectorer, slik at man gjør minimal mengde jobb
 
 ---
 
@@ -379,7 +440,7 @@ export const getNames = createSelector(
 
 .col[
 ```js
-function MyComponent({
+function RootComponent({
   names,
   counter,
 }) {
@@ -398,7 +459,7 @@ const mapStateToProps = (state) => ({
 
 export default connect(
   mapStateToProps
-)(MyComponent);
+)(RootComponent);
 ```
 ]
 
@@ -448,6 +509,14 @@ const getVisibleTodosFilteredByKeyword = createSelector(
 
 ---
 
+#Verdt å huske på
+
+* For å unngå re-rendring må man bruke PureComponent i React, eller tilsvarende i andre biblioteker
+* `reselect` kan fint brukes til å unngå å gjøre tunge operasjoner for ofte, må ikke brukes for å hindre re-rendring
+* Dersom man vil dele en reselect-selector mellom flere komponenter må man ta noen forhåndsregler, les dokumentasjon.
+
+---
+
 # Oppsummering
 
 * Lag selector-funksjoner som grupperes sammen med reducere slik at view ikke er avhengig hvordan tilstanden ser ut.
@@ -462,7 +531,11 @@ data
 ```
 
 * Unngå mapping av state i `render()` eller `mapStateToProps()`.
-* Bruk `reselect` eller lignende for unngå unødvendig arbeid dersom data ikke endres.
+* Bruk `reselect` eller lignende for unngå unødvendig arbeid eller unødvendige re-renders dersom data ikke endres.
+
+## Dokumentasjon
+
+* [https://github.com/reactjs/reselect](https://github.com/reactjs/reselect)
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
