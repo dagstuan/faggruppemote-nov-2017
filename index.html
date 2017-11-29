@@ -325,6 +325,7 @@ class: cols two
 .col[
 * I dette tilfellet må `NameList` re-rendres hver gang `RootComponent` rendres.
 * Mappingen fra `people` til `names` gjør at `NameList` alltid vil få en ny referanse til navnelisten
+* I tillegg må selve mapping-jobben gjøres hver eneste gang `RootComponent` må rendres.
 ]
 
 ???
@@ -365,6 +366,7 @@ class: cols two
 .col[
 * I dette tilfellet må `NameList` re-rendres hver gang `RootComponent` rendres.
 * Mappingen fra `people` til `names` gjør at `NameList` alltid vil få en ny referanse til navnelisten
+* I tillegg må selve mapping-jobben gjøres hver eneste gang `RootComponent` må rendres.
 * Det spiller ingen rolle om vi gjør det i `mapStateToProps()` eller i komponenten, `NameList` vil uansett få en ny listereferanse
 ]
 

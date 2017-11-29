@@ -19,6 +19,7 @@ class NameList extends PureComponent {
 const RootComponent = ({
   counter, people, increment,
 }) => {
+  console.log('RootComponent render!');
   const names = people.map(person => person.get('name'));
 
   return (
